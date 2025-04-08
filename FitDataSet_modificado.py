@@ -1,0 +1,59 @@
+
+import scipy.io
+import numpy as np
+from numpy import mod
+from scipy.io import savemat
+from scipy.optimize import fmin
+import matplotlib.pyplot as plt
+from scipy.stats import chisquare
+import os
+
+from aVectStreHeadNew import a_vect_stre_head_new
+from aVectStreLMNew import a_vect_stre_lm_new
+from aFitHeadingNew import a_fit_heading_new
+from aFitLMNew import a_fit_lm_new
+
+new = 1
+env = 0
+Nbins = 10
+tS = 0
+tS0 = 1
+condSup = 1
+NShuffles = 1
+countCellZero = 0
+run = 1
+
+mat_data = scipy.io.loadmat('RatesNew10BinsEnvABC_v7.mat')
+rates = mat_data['RateBigBinsXYDirectionAnimalDay']
+
+# Crear carpeta para guardar los plots
+output_dir = "plots"
+os.makedirs(output_dir, exist_ok=True)
+
+rCutOff = 0.5  # min firing rate for a bin to be considered
+pCutOff = 20   # min # of above threshold bins
+
+if run == 1:
+    if new:
+        for animal in range(12):
+            for day in range(10):
+                if rates[animal, day] is not None and rates[animal, day].size > 0:
+                    print(f"Procesando Ratón {animal+1}, Día {day+1}")
+                    
+                    rate_data = rates[animal, day][env, tS]
+                    rate_pref = np.nanmean(rate_data, axis=2)
+                    
+                    # Fitting heading direction model (solo ejemplo)
+                    p0 = [1, 0]
+                    res = fmin(a_fit_heading_new, p0, args=(rate_data, rate_pref, rCutOff, Nbins), disp=False)
+                    
+                    # Plot result
+                    plt.figure(figsize=(6, 6))  # estilo 1110
+                    plt.imshow(np.nanmean(rate_data, axis=2), origin='lower', cmap='viridis')
+                    plt.colorbar(label='Firing rate')
+                    plt.title(f"Ratón {animal+1}, Día {day+1}")
+                    plt.tight_layout()
+                    
+                    filename = f"plot_raton{animal+1}_dia{day+1}.png"
+                    plt.savefig(os.path.join(output_dir, filename))
+                    plt.close()
